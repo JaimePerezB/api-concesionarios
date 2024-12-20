@@ -1,0 +1,23 @@
+{
+  "name": "ud-4",
+  "version": "1.0.0",
+  "description": "Este archivo se escribe en formato markdown.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafaeldelRio/daweb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RafaeldelRio/daweb/issues"
+  },
+  "homepage": "https://github.com/RafaeldelRio/daweb#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
