@@ -2,6 +2,10 @@ const express = require('express');
 const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 const helmet = require('helmet');
 
+const swaggerUi = require("swagger-ui-express");  
+const swaggerDocument = require("./swagger.json");
+
+
 const app = express();
 const PORT = 3000;
 
@@ -26,11 +30,15 @@ let database, concesionariosCollection;
 // Conectar con la base de datos
 async function connectToDatabase() {
   try {
+
     console.log('Conectando a la base de datos...');
+
+
     await client.connect();
     database = client.db('concesionariosDB'); // Nombre de la base de datos
     concesionariosCollection = database.collection('concesionarios');
     console.log('Conexión a MongoDB exitosa');
+
 
     // **Insertar un concesionario de prueba (solo la primera vez)**
     const concesionarioPrueba = {
@@ -50,12 +58,19 @@ async function connectToDatabase() {
     } else {
       console.log('El concesionario de prueba ya existe en la base de datos.');
     }
+
+
   } catch (error) {
     console.error('Error al conectar con MongoDB:', error);
     process.exit(1);
   }
 }
 connectToDatabase();
+
+
+// Configuración de Swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 
 // Endpoints
 app.get('/concesionarios', async (req, res) => {
@@ -131,6 +146,83 @@ app.post('/concesionarios/:id/coches', async (req, res) => {
     res.status(404).send('Concesionario no encontrado');
   }
 });
+
+
+
+app.get('/concesionarios/:id/coches', async (req, res) => {
+  const { id } = req.params;
+  const concesionario = await concesionariosCollection.findOne({
+    _id: new ObjectId(id),
+  });
+  if (concesionario) {
+    res.json(concesionario.coches);
+  } else {
+    res.status(404).send('Concesionario no encontrado');
+  }
+});
+
+app.get('/concesionarios/:id/coches/:cocheId', async (req, res) => {
+  const { id, cocheId } = req.params;
+  const concesionario = await concesionariosCollection.findOne({
+    _id: new ObjectId(id),
+  });
+  if (concesionario) {
+    const coche = concesionario.coches.find(c => c.id == cocheId);
+    if (coche) {
+      res.json(coche);
+    } else {
+      res.status(404).send('Coche no encontrado');
+    }
+  } else {
+    res.status(404).send('Concesionario no encontrado');
+  }
+});
+
+app.put('/concesionarios/:id/coches/:cocheId', async (req, res) => {
+  const { id, cocheId } = req.params;
+  const { modelo, cv, precio } = req.body;
+  const concesionario = await concesionariosCollection.findOne({
+    _id: new ObjectId(id),
+  });
+  if (concesionario) {
+    const cocheIndex = concesionario.coches.findIndex(c => c.id == cocheId);
+    if (cocheIndex >= 0) {
+      concesionario.coches[cocheIndex] = { id: cocheId, modelo, cv, precio };
+      await concesionariosCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { coches: concesionario.coches } }
+      );
+      res.send('Coche actualizado correctamente');
+    } else {
+      res.status(404).send('Coche no encontrado');
+    }
+  } else {
+    res.status(404).send('Concesionario no encontrado');
+  }
+});
+
+app.delete('/concesionarios/:id/coches/:cocheId', async (req, res) => {
+  const { id, cocheId } = req.params;
+  const concesionario = await concesionariosCollection.findOne({
+    _id: new ObjectId(id),
+  });
+  if (concesionario) {
+    const cocheIndex = concesionario.coches.findIndex(c => c.id == cocheId);
+    if (cocheIndex >= 0) {
+      concesionario.coches.splice(cocheIndex, 1);
+      await concesionariosCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { coches: concesionario.coches } }
+      );
+      res.status(204).send();
+    } else {
+      res.status(404).send('Coche no encontrado');
+    }
+  } else {
+    res.status(404).send('Concesionario no encontrado');
+  }
+});
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {
